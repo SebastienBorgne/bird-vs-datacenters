@@ -1,0 +1,6 @@
+failure-threshold: warning
+
+ignored:
+  # Alpine's package index doesn't retain old versions, so pinning exact
+  # apk versions causes builds to break as soon as the base image updates.
+  - DL3018

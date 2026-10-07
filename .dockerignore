@@ -1,0 +1,11 @@
+.git
+.venv
+.vscode
+.ruff_cache
+__pycache__
+*.py[oc]
+docker
+compose*.yaml
+Makefile
+.env
+.python-version

@@ -1,0 +1,16 @@
+name: ordy
+
+# Dev override: only db/rabbitmq run in Docker. django, celery-beat and
+# celery-worker are turned off — `make runserver-dev` / `make scheduler` /
+# `make worker` run those locally instead (against the db/rabbitmq this
+# stack still starts, both published on their default host ports).
+
+services:
+  django:
+    profiles: ["disabled"]
+
+  celery-beat:
+    profiles: ["disabled"]
+
+  celery-worker:
+    profiles: ["disabled"]
