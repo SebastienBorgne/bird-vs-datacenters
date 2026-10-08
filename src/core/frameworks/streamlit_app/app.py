@@ -1,26 +1,21 @@
 """Streamlit dashboard: bird observations and datacenters on an interactive map.
 
 Run with `make dashboard` (or `uv run streamlit run src/core/frameworks/streamlit_app/app.py`).
-Reads through the Geodata repositories, so the db must be up (`make up`).
+Reads through the Geodata repositories (Cassandra), so it must be up (`make up`).
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import asdict
 
-import django
 import numpy as np
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.frameworks.django_app.config.settings")
-django.setup()
-
-from core.frameworks.django_app.geodata.repositories import (
-    DjangoBirdObservationRepository,
-    DjangoDatacenterRepository,
+from core.infrastructure.persistence.cassandra.repositories import (
+    CassandraBirdObservationRepository,
+    CassandraDatacenterRepository,
 )
 
 BIRD_COLOR = [34, 139, 94, 200]
@@ -37,7 +32,7 @@ def _flatten(entity: object) -> dict:
 @st.cache_data(ttl=600, show_spinner="Loading bird observations…")
 def load_birds() -> pd.DataFrame:
     df = pd.DataFrame(
-        [_flatten(o) for o in DjangoBirdObservationRepository().list_all()],
+        [_flatten(o) for o in CassandraBirdObservationRepository().list_all()],
         columns=["id", "common_name", "scientific_name", "observed_on", "latitude", "longitude"],
     )
     df = df.dropna(subset=["latitude", "longitude"])
@@ -53,7 +48,7 @@ def load_birds() -> pd.DataFrame:
 @st.cache_data(ttl=600, show_spinner="Loading datacenters…")
 def load_datacenters() -> pd.DataFrame:
     df = pd.DataFrame(
-        [_flatten(d) for d in DjangoDatacenterRepository().list_all()],
+        [_flatten(d) for d in CassandraDatacenterRepository().list_all()],
         columns=["external_id", "name", "operator", "opened_on", "latitude", "longitude"],
     )
     df["opened_on"] = pd.to_datetime(df["opened_on"])

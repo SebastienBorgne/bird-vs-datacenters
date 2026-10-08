@@ -7,7 +7,7 @@
 
 FROM python:3.14-alpine AS builder
 
-RUN apk add --no-cache build-base postgresql-dev
+RUN apk add --no-cache build-base postgresql-dev libev-dev
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
@@ -27,7 +27,7 @@ RUN uv sync --locked --no-dev
 
 FROM python:3.14-alpine AS runtime
 
-RUN apk add --no-cache libpq && \
+RUN apk add --no-cache libpq libev && \
     addgroup -S ordy && adduser -S ordy -G ordy
 
 WORKDIR /app

@@ -2,7 +2,7 @@
 
 Defined in the domain layer because the domain dictates what persistence
 operations it needs. Concrete implementations live in
-`core.frameworks.django_app.geodata` and depend on these interfaces —
+`core.infrastructure.persistence.cassandra` and depend on these interfaces —
 never the other way around.
 """
 

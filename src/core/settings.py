@@ -37,10 +37,10 @@ class DatabaseSettings:
 
 class BirdApiSettings:
     # iNaturalist observations endpoint; its query string holds the filters (taxon 3 = birds,
-    # geo=true = only geolocated ones). Paging params are added by `BirdApiService`.
+    # geo=true = only geolocated ones). Paging params are added by `INaturalistSource`.
     # Changing the filters on a non-empty db leaves older rows that don't match them.
-    BIRD_API_URL = env.get(
-        "BIRD_API_URL", "https://api.inaturalist.org/v1/observations?taxon_id=3&geo=true"
+    BIRD_API_URL = (
+        env.get("BIRD_API_URL") or "https://api.inaturalist.org/v1/observations?taxon_id=3&geo=true"
     )
     # Pages (of 200 observations) fetched per run. iNaturalist asks for <= 1 request/s and
     # ~10k requests/day, so keep MAX_PAGES x runs/day under that.
@@ -51,10 +51,19 @@ class BirdApiSettings:
 class DatacenterApiSettings:
     # Public OpenStreetMap Overpass API — free, no key. Mirrors, e.g.
     # https://overpass.private.coffee/api/interpreter, can be swapped in.
-    OVERPASS_API_URL = env.get("OVERPASS_API_URL", "https://overpass-api.de/api/interpreter")
+    OVERPASS_API_URL = env.get("OVERPASS_API_URL") or "https://overpass-api.de/api/interpreter"
     # Comma-separated ISO 3166-1 alpha-2 codes, queried one at a time to keep each
     # Overpass request small. Empty means a single worldwide query.
     DATACENTER_COUNTRIES = env.get("DATACENTER_COUNTRIES", "US,FR,BE,NL,DE,IE,GB")
+
+
+class CassandraSettings:
+    HOSTS = tuple(h.strip() for h in (env.get("CASSANDRA_HOSTS") or "localhost").split(","))
+    PORT = int(env.get("CASSANDRA_PORT") or 9042)
+    KEYSPACE = env.get("CASSANDRA_KEYSPACE") or "birdy"
+    LOCAL_DC = env.get("CASSANDRA_LOCAL_DC") or "datacenter1"
+    # 1 for the single dev node; raise it (and the strategy) for a real cluster.
+    REPLICATION_FACTOR = int(env.get("CASSANDRA_REPLICATION_FACTOR") or 1)
 
 
 class Settings:
@@ -62,6 +71,7 @@ class Settings:
     database: DatabaseSettings = DatabaseSettings()
     bird_api: BirdApiSettings = BirdApiSettings()
     datacenter_api: DatacenterApiSettings = DatacenterApiSettings()
+    cassandra: CassandraSettings = CassandraSettings()
 
 
 config = Settings()

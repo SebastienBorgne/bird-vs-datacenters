@@ -174,6 +174,7 @@ name = "birdy"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cassandra-driver" },
     { name = "celery" },
     { name = "commitizen" },
     { name = "django" },
@@ -198,6 +199,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cassandra-driver", specifier = ">=3.30.1" },
     { name = "celery", specifier = ">=5.6.3" },
     { name = "commitizen", specifier = ">=4.18.0" },
     { name = "django", specifier = ">=5.2,<6.1" },
@@ -218,6 +220,23 @@ dev = [
     { name = "pylint", specifier = ">=3.3" },
     { name = "pylint-django", specifier = ">=2.6" },
     { name = "ruff", specifier = ">=0.8" },
+]
+
+[[package]]
+name = "cassandra-driver"
+version = "3.30.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "deprecated" },
+    { name = "geomet" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bb/ed/4e16210e194660f107929ee494f1cf18557252655067d9b39029c241be2d/cassandra_driver-3.30.1.tar.gz", hash = "sha256:0c6a3e1428f7c6a9aa6c944b9c47a37cd2cdbeb5b5a82d42c33afdd56f14e398", size = 289233, upload-time = "2026-07-06T20:14:31.37Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/52/2c06e18f3d4c4fe3263a5e6cc1e747b592b9d2d2546e20add7dac43dc1b6/cassandra_driver-3.30.1-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:87822d6cce2c586aa72733a9dd1858276cee795834f7ad949c783bf19cf7a3a7", size = 3618485, upload-time = "2026-07-06T20:14:14.863Z" },
+    { url = "https://files.pythonhosted.org/packages/16/a5/ce2fc121344a55af03800cf388d2672f8eae9ebe0b5d3143417b4c5585a0/cassandra_driver-3.30.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:3cb90ec9ac9d44cbfe17f1e9cb643dbc5f401e62980835aa6669a2fd5792863b", size = 3446763, upload-time = "2026-07-06T20:14:18.661Z" },
+    { url = "https://files.pythonhosted.org/packages/19/b5/0b9c71f8e5255905df92487ca5c366f397fd5806e369fc804ab55e3e02cc/cassandra_driver-3.30.1-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:921403aa76c66d78d00c4a3dff542f989fa584b7450e3cb1dd2c267b4a5a55f0", size = 3277349, upload-time = "2026-07-06T20:14:22.387Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/b9/d1ce6bc0c990005ab45ac984aa7f3b93c7fd2ba2b83d5a9b02df6c134481/cassandra_driver-3.30.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:61bf2ded460fb0d2e909b70c9d193588b71148540bd85e29fe6954e00bb1a869", size = 3496154, upload-time = "2026-07-06T20:14:26.295Z" },
+    { url = "https://files.pythonhosted.org/packages/43/e9/c8aabe3f2b7ab862c2741b67a3296ce8ae677b85cb53ce61773b909b37ba/cassandra_driver-3.30.1-cp314-cp314-win_amd64.whl", hash = "sha256:3c32513a2f2c6832d4fe3464e11be59dc21096dba296b18ec3454bc8354a78ba", size = 2716997, upload-time = "2026-07-06T20:14:29.651Z" },
 ]
 
 [[package]]
@@ -541,6 +560,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0a/a0/50c2c0ce5e74d7721bbb1b19a26ebd339aac5878553a6e35308c2f31f935/filelock-3.32.5.tar.gz", hash = "sha256:f6a6a28f743f9b95ce19db5abe0f376f75eb56517dff21e1a4751e2657d3e83d", size = 222838, upload-time = "2026-08-31T18:56:34.729Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/36/d2/b70a31e13d04456d28493f31d2aa087e99eeb2767ef0293b2625727ccb8c/filelock-3.32.5-py3-none-any.whl", hash = "sha256:142cd9fa77a872c5e78c62329a0d15278fadc686eb89e760017968961a4fd6b2", size = 100003, upload-time = "2026-08-31T18:56:33.078Z" },
+]
+
+[[package]]
+name = "geomet"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2a/8c/dde022aa6747b114f6b14a7392871275dea8867e2bd26cddb80cc6d66620/geomet-1.1.0.tar.gz", hash = "sha256:51e92231a0ef6aaa63ac20c443377ba78a303fd2ecd179dc3567de79f3c11605", size = 28732, upload-time = "2023-11-14T15:43:36.764Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/af/90/3bc780df088d439714af8295196a4332a26559ae66fd99865e36f92efa9e/geomet-1.1.0-py3-none-any.whl", hash = "sha256:4372fe4e286a34acc6f2e9308284850bd8c4aa5bc12065e2abbd4995900db12f", size = 31522, upload-time = "2023-11-14T15:43:35.305Z" },
 ]
 
 [[package]]

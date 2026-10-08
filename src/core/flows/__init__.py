@@ -4,7 +4,9 @@ A flow is a self-contained, schedulable unit of work:
 
     flows/<flow_name>/app.py        Typer app — manual/local run + trigger from the CLI
     flows/<flow_name>/tasks.py      Celery task — wraps use_cases for scheduled runs
-    flows/<flow_name>/use_cases.py  the actual business logic (no Celery/Typer import)
+    flows/<flow_name>/use_cases.py  composition root: wires infrastructure adapters into an
+                                    application use case (`core.application`), where the
+                                    business logic lives (no Celery/Typer import)
     flows/<flow_name>/__init__.py   re-exports `app` from app.py
 
 `FLOW_NAMES` is discovered from the subpackages present here so the CLI

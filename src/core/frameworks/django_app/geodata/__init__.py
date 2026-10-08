@@ -1,8 +1,7 @@
-"""Django app for the Geodata context: models, admin, ORM-backed repositories.
+"""Django app for the Geodata context — migration history only.
 
-Tables live in PostGIS. Each one stores plain `latitude`/`longitude`
-columns (what the ORM reads/writes) plus a `location geography(Point)`
-column generated from them by the database and GiST-indexed (see the
-initial migration), so distance queries (`ST_DWithin`, `ST_Distance`)
-run in SQL without requiring GeoDjango's GDAL/GEOS system libraries.
+Bird observations and datacenters used to live in PostGIS tables here; they
+now live in Cassandra (`core.infrastructure.persistence.cassandra`).
+Migration 0002 copies the rows over and 0003 drops the tables, so the app
+stays installed for those migrations to run on existing databases.
 """

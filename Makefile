@@ -8,8 +8,7 @@ COMPOSE = docker compose -f compose.yaml -f compose-dev.yaml
 # `worker` bring the Docker infra up first (detached); `runserver-dev` only
 # starts Django, so run `make up` beforehand if the infra isn't running.
 run-dev:
-	$(COMPOSE) up --build
-
+	$(COMPOSE) up
 up:
 	$(COMPOSE) up -d --build
 	$(COMPOSE) wait init
