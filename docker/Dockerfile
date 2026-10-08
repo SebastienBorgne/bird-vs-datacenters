@@ -34,6 +34,10 @@ WORKDIR /app
 
 COPY --from=builder --chown=ordy:ordy /app /app
 
+# Mount point of the `static_files` volume (collectstatic, served by nginx):
+# created here so the fresh volume inherits the `ordy` owner.
+RUN mkdir /app/staticfiles && chown ordy:ordy /app/staticfiles
+
 ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

@@ -14,14 +14,14 @@ from . import use_cases
 
 
 @shared_task
-def run() -> str:
+def run(max_pages: int | None = None) -> str:
     """Execute the bird observations flow. Called directly for a synchronous run, or
     by a Celery worker when queued via `trigger()` (or a Celery Beat schedule).
     """
-    return use_cases.run()
+    return use_cases.run(max_pages)
 
 
-def trigger() -> str:
+def trigger(max_pages: int | None = None) -> str:
     """Enqueue the bird observations flow on Celery (RabbitMQ) for a worker to run
     asynchronously.
 
@@ -30,4 +30,4 @@ def trigger() -> str:
     # pylint: disable-next=import-outside-toplevel,unused-import
     from core.frameworks.celery_app.app import app as celery_app  # noqa: F401
 
-    return run.delay().id
+    return run.delay(max_pages).id

@@ -36,9 +36,16 @@ class DatabaseSettings:
 
 
 class BirdApiSettings:
+    # iNaturalist observations endpoint; its query string holds the filters (taxon 3 = birds,
+    # geo=true = only geolocated ones). Paging params are added by `BirdApiService`.
+    # Changing the filters on a non-empty db leaves older rows that don't match them.
     BIRD_API_URL = env.get(
-        "BIRD_API_URL", "https://api.inaturalist.org/v1/observations?taxon_id=3&per_page=50"
+        "BIRD_API_URL", "https://api.inaturalist.org/v1/observations?taxon_id=3&geo=true"
     )
+    # Pages (of 200 observations) fetched per run. iNaturalist asks for <= 1 request/s and
+    # ~10k requests/day, so keep MAX_PAGES x runs/day under that.
+    BIRD_API_MAX_PAGES = int(env.get("BIRD_API_MAX_PAGES") or 50)
+    BIRD_API_DELAY_S = float(env.get("BIRD_API_DELAY_S") or 1.0)
 
 
 class DatacenterApiSettings:

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import date
 
+from django.db.models import Max, Min
+
 from core.domain.geodata.entities import BirdObservation, Datacenter
 from core.domain.geodata.repositories import BirdObservationRepository, DatacenterRepository
 from core.domain.geodata.value_objects import GeoPoint
@@ -57,6 +59,12 @@ class DjangoBirdObservationRepository(BirdObservationRepository):
 
     def list_all(self) -> list[BirdObservation]:
         return [_to_observation(row) for row in BirdObservationModel.objects.all()]
+
+    def id_bounds(self) -> tuple[int, int] | None:
+        bounds = BirdObservationModel.objects.aggregate(
+            low=Min("observation_id"), high=Max("observation_id")
+        )
+        return None if bounds["low"] is None else (bounds["low"], bounds["high"])
 
     def list_near(
         self,

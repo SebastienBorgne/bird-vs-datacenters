@@ -18,7 +18,7 @@ down:
 	$(COMPOSE) down
 
 runserver-dev:
-	uv run python manage.py runserver
+	uv run python manage.py runserver 0.0.0.0:8000
 
 scheduler:
 	uv run celery -A core.frameworks.celery_app.app beat -l info
@@ -27,4 +27,4 @@ worker:
 	uv run celery -A core.frameworks.celery_app.app worker -l info
 
 dashboard:
-	uv run streamlit run src/core/frameworks/streamlit_app/app.py
+	uv run streamlit run src/core/frameworks/streamlit_app/app.py --server.address=0.0.0.0

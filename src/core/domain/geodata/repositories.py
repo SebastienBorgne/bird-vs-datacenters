@@ -24,6 +24,10 @@ class BirdObservationRepository(ABC):
     def list_all(self) -> list[BirdObservation]: ...
 
     @abstractmethod
+    def id_bounds(self) -> tuple[int, int] | None:
+        """Lowest and highest stored observation ids, or `None` when there are none."""
+
+    @abstractmethod
     def list_near(
         self,
         center: GeoPoint,

@@ -1,9 +1,11 @@
 name: ordy
 
-# Dev override: only db/rabbitmq run in Docker. django, celery-beat and
-# celery-worker are turned off — `make runserver-dev` / `make scheduler` /
-# `make worker` run those locally instead (against the db/rabbitmq this
-# stack still starts, both published on their default host ports).
+# Dev override: only db/rabbitmq/nginx run in Docker. django, dashboard,
+# celery-beat and celery-worker are turned off — `make runserver-dev` /
+# `make dashboard` / `make scheduler` / `make worker` run those locally
+# instead (against the db/rabbitmq this stack still starts, both published
+# on their default host ports). nginx proxies to the local django/dashboard
+# through `host.docker.internal`, so they must listen on 0.0.0.0.
 
 services:
   django:
@@ -14,3 +16,16 @@ services:
 
   celery-worker:
     profiles: ["disabled"]
+
+  dashboard:
+    profiles: ["disabled"]
+
+  nginx:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DJANGO_UPSTREAM: host.docker.internal:8000
+      DASHBOARD_UPSTREAM: host.docker.internal:8501
+    depends_on: !override
+      rabbitmq:
+        condition: service_started

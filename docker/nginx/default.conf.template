@@ -1,0 +1,123 @@
+# Reverse proxy: one entry point, one subdomain per service.
+#
+# Rendered by the nginx image's entrypoint (envsubst) into /etc/nginx/conf.d/:
+# ${NGINX_DOMAIN}, ${DJANGO_UPSTREAM} and ${DASHBOARD_UPSTREAM} come from the
+# container environment (see compose.yaml / compose-dev.yaml).
+#
+# Two ways of reaching a backend:
+# - `upstream` blocks (django, dashboard) are resolved once at startup, through
+#   /etc/hosts too, so they also work for `host.docker.internal` when those run
+#   on the host in dev. compose restarts nginx when they're recreated.
+# - `set $backend ...; proxy_pass $backend;` (rabbitmq, jupyter, spark) is
+#   resolved per request through Docker's DNS, so nginx starts even when an
+#   optional service (the `spark` profile) isn't running, and answers 502
+#   for it instead.
+
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+upstream django {
+    server ${DJANGO_UPSTREAM};
+}
+
+upstream dashboard {
+    server ${DASHBOARD_UPSTREAM};
+}
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+proxy_http_version 1.1;
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+# WebSockets: Streamlit, Jupyter kernels, RabbitMQ management.
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection $connection_upgrade;
+proxy_read_timeout 1h;
+client_max_body_size 50m;
+
+# Landing page (docker/nginx/html/index.html) and the health probes it polls.
+server {
+    listen 80 default_server;
+    server_name ${NGINX_DOMAIN};
+
+    root /usr/share/nginx/html;
+
+    # Only the health probes below are proxied from this server: fail fast.
+    proxy_connect_timeout 2s;
+    proxy_read_timeout 3s;
+
+    location = / {
+        try_files /index.html =404;
+        add_header Cache-Control "no-cache";
+    }
+
+    # Same-origin probes polled by the landing page: any answer below 500 means
+    # the service is up; nginx itself answers 502/504 when it isn't reachable.
+    location = /_health/admin     { access_log off; proxy_pass http://django/admin/login/; }
+    location = /_health/dashboard { access_log off; proxy_pass http://dashboard/_stcore/health; }
+    location = /_health/rabbitmq  { access_log off; set $backend http://rabbitmq:15672/; proxy_pass $backend; }
+    location = /_health/jupyter   { access_log off; set $backend http://spark:8888/api; proxy_pass $backend; }
+    location = /_health/spark     { access_log off; set $backend http://spark:4040/; proxy_pass $backend; }
+
+    location / {
+        return 404;
+    }
+}
+
+server {
+    listen 80;
+    server_name admin.${NGINX_DOMAIN};
+
+    # Collected by `init` (collectstatic) into the shared `static_files` volume.
+    location /static/ {
+        alias /var/www/static/;
+        expires 7d;
+    }
+
+    location / {
+        proxy_pass http://django;
+    }
+}
+
+server {
+    listen 80;
+    server_name dashboard.${NGINX_DOMAIN};
+
+    location / {
+        proxy_pass http://dashboard;
+    }
+}
+
+server {
+    listen 80;
+    server_name rabbitmq.${NGINX_DOMAIN};
+
+    location / {
+        set $backend http://rabbitmq:15672;
+        proxy_pass $backend;
+    }
+}
+
+server {
+    listen 80;
+    server_name jupyter.${NGINX_DOMAIN};
+
+    location / {
+        set $backend http://spark:8888;
+        proxy_pass $backend;
+    }
+}
+
+server {
+    listen 80;
+    server_name spark.${NGINX_DOMAIN};
+
+    location / {
+        set $backend http://spark:4040;
+        proxy_pass $backend;
+    }
+}

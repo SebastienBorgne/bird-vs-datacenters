@@ -19,7 +19,8 @@ BASE_DIR = Path(__file__).resolve().parents[5]
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "insecure-dev-key-change-me")
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+# `.localhost` matches the subdomains nginx serves (admin.localhost, ...).
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", ".localhost,localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -80,6 +81,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+# Filled by `collectstatic` (the compose `init` service) and served by nginx.
+STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Celery — broker is RabbitMQ, schedules are read from django-celery-beat's
