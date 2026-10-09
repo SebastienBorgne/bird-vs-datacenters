@@ -57,6 +57,23 @@ class DatacenterApiSettings:
     DATACENTER_COUNTRIES = env.get("DATACENTER_COUNTRIES", "US,FR,BE,NL,DE,IE,GB")
 
 
+class WeatherApiSettings:
+    # Open-Meteo historical weather API (ERA5 reanalysis and others): free for
+    # non-commercial use, no key. Daily metrics are fetched for the center of each
+    # datacenter region (1° grid cell).
+    WEATHER_API_URL = env.get("WEATHER_API_URL") or "https://archive-api.open-meteo.com/v1/archive"
+    # Window kept in store: the last YEARS years, up to LAG_DAYS ago (the archive
+    # lags a few days behind real time).
+    WEATHER_API_YEARS = int(env.get("WEATHER_API_YEARS") or 5)
+    WEATHER_API_LAG_DAYS = int(env.get("WEATHER_API_LAG_DAYS") or 5)
+    # Open-Meteo counts a request as (days / 14) x (variables / 10) calls: one region-year
+    # of the 6 daily metrics ~ 16 calls. Its free limits are 600 calls/min, 5,000/hour and
+    # 10,000/day, so 250 requests (~4,000 calls) per run, at most twice a day, stays under.
+    WEATHER_API_MAX_REQUESTS = int(env.get("WEATHER_API_MAX_REQUESTS") or 250)
+    # ~16 calls per request: 2 s between requests is ~480 calls/min.
+    WEATHER_API_DELAY_S = float(env.get("WEATHER_API_DELAY_S") or 2.0)
+
+
 class CassandraSettings:
     HOSTS = tuple(h.strip() for h in (env.get("CASSANDRA_HOSTS") or "localhost").split(","))
     PORT = int(env.get("CASSANDRA_PORT") or 9042)
@@ -71,6 +88,7 @@ class Settings:
     database: DatabaseSettings = DatabaseSettings()
     bird_api: BirdApiSettings = BirdApiSettings()
     datacenter_api: DatacenterApiSettings = DatacenterApiSettings()
+    weather_api: WeatherApiSettings = WeatherApiSettings()
     cassandra: CassandraSettings = CassandraSettings()
 
 

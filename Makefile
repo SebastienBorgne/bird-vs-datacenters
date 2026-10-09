@@ -7,10 +7,11 @@ COMPOSE = docker compose -f compose.yaml -f compose-dev.yaml
 # `make runserver-dev` / `make scheduler` / `make worker`. `scheduler` and
 # `worker` bring the Docker infra up first (detached); `runserver-dev` only
 # starts Django, so run `make up` beforehand if the infra isn't running.
+# `run-dev` also starts the dashboard and spark containers.
 run-dev:
-	$(COMPOSE) up
+	DASHBOARD_UPSTREAM=dashboard:8501 $(COMPOSE) --profile dashboard --profile spark up
 up:
-	$(COMPOSE) up -d --build
+	$(COMPOSE) up -d
 	$(COMPOSE) wait init
 
 down:

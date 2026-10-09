@@ -1,17 +1,20 @@
 """OpenStreetMap (public Overpass API) adapter for `DatacenterSource`.
 
 OSM tags datacenters with `telecom=data_center` (and sometimes only
-`building=data_center`). Buildings are ways/relations, so `out center`
-asks Overpass for a single representative point per element. Data is
-© OpenStreetMap contributors, under the ODbL.
+`building=data_center`). Buildings are ways/relations: `out geom` returns
+their outline, which gives their footprint, and their bounding box, whose
+center is the datacenter's position (the same point `out center` gives).
+Data is © OpenStreetMap contributors, under the ODbL.
 """
 
 from __future__ import annotations
 
 import logging
+import math
 import re
 import time
 from datetime import date
+from itertools import pairwise
 from typing import Any
 
 import requests
@@ -41,11 +44,78 @@ def parse_start_date(value: str | None) -> date | None:
         return None
 
 
-def to_datacenter(element: dict[str, Any]) -> Datacenter | None:
-    """Map one Overpass element to the domain; `None` when it has no position."""
+def parse_levels(value: str | None) -> int | None:
+    """`building:levels` as a positive whole number; `None` when missing or unparsable."""
+    try:
+        levels = round(float(value)) if value else 0
+    except ValueError:
+        return None
+    return levels if levels > 0 else None
+
+
+EARTH_RADIUS_M = 6_371_008.8
+
+
+def ring_area_m2(points: list[dict[str, float]]) -> float | None:
+    """Area of a closed ring of `{"lat", "lon"}` points; `None` when it isn't closed.
+
+    Projected on a plane tangent at its first point, which is precise enough at the
+    scale of a building or a campus.
+    """
+    if len(points) < 4 or points[0] != points[-1]:
+        return None
+    lat0 = math.radians(points[0]["lat"])
+    xy = [
+        (
+            math.radians(p["lon"]) * math.cos(lat0) * EARTH_RADIUS_M,
+            math.radians(p["lat"]) * EARTH_RADIUS_M,
+        )
+        for p in points
+    ]
+    return abs(sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2) in pairwise(xy))) / 2
+
+
+def footprint_m2(element: dict[str, Any]) -> float | None:
+    """Ground area of a way or multipolygon relation; `None` for nodes, open ways, and
+    relations whose rings are split across several ways (not reassembled here).
+    """
+    if element.get("type") == "way":
+        return ring_area_m2(element.get("geometry") or [])
+    if element.get("type") != "relation":
+        return None
+    total = 0.0
+    for member in element.get("members") or []:
+        if member.get("type") != "way" or member.get("role") not in ("outer", "inner"):
+            continue
+        area = ring_area_m2(member.get("geometry") or [])
+        if area is None:
+            return None
+        total += area if member["role"] == "outer" else -area
+    return total if total > 0 else None
+
+
+def position(element: dict[str, Any]) -> GeoPoint | None:
+    """A node's own position, otherwise the center of the element's bounding box."""
+    if element.get("lat") is not None and element.get("lon") is not None:
+        return GeoPoint(latitude=float(element["lat"]), longitude=float(element["lon"]))
+    bounds = element.get("bounds")
+    if not bounds:
+        return None
+    return GeoPoint(
+        latitude=(bounds["minlat"] + bounds["maxlat"]) / 2,
+        longitude=(bounds["minlon"] + bounds["maxlon"]) / 2,
+    )
+
+
+def to_datacenter(element: dict[str, Any], country: str | None = None) -> Datacenter | None:
+    """Map one Overpass element to the domain; `None` when it has no position.
+
+    `country` is the country it was queried in; worldwide queries fall back to its
+    `addr:country` tag.
+    """
     tags = element.get("tags") or {}
-    center = element.get("center") or element
-    if center.get("lat") is None or center.get("lon") is None:
+    location = position(element)
+    if location is None:
         return None
     external_id = f"osm:{element.get('type')}/{element.get('id')}"
     return Datacenter(
@@ -54,9 +124,12 @@ def to_datacenter(element: dict[str, Any]) -> Datacenter | None:
         or tags.get("ref")
         or tags.get("operator")
         or f"Datacenter {external_id}",
-        location=GeoPoint(latitude=float(center["lat"]), longitude=float(center["lon"])),
+        location=location,
         operator=tags.get("operator"),
         opened_on=parse_start_date(tags.get("start_date")),
+        country=country or (tags.get("addr:country") or "").strip().upper() or None,
+        footprint_m2=footprint_m2(element),
+        levels=parse_levels(tags.get("building:levels")),
     )
 
 
@@ -79,7 +152,7 @@ class OverpassSource(DatacenterSource):
             "[out:json][timeout:180];"
             f"{area}"
             f'(nwr["telecom"="data_center"]{scope};nwr["building"="data_center"]{scope};);'
-            "out center tags;"
+            "out tags geom;"
         )
 
     def fetch_all(self) -> list[Datacenter]:
@@ -90,7 +163,7 @@ class OverpassSource(DatacenterSource):
         datacenters: dict[str, Datacenter] = {}
         for scope in scopes:
             for element in self._fetch(self.build_query(scope)):
-                datacenter = to_datacenter(element)
+                datacenter = to_datacenter(element, scope)
                 if datacenter is not None:
                     datacenters[datacenter.external_id] = datacenter
         return list(datacenters.values())

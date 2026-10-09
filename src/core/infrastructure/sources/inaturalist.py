@@ -8,24 +8,15 @@ come from the query string of `BIRD_API_URL`.
 
 from __future__ import annotations
 
-import logging
-import time
 from datetime import date
 from typing import Any
 
-import requests
-from requests.exceptions import RequestException
-
-from core.application.geodata.ports import (
-    BirdObservationSource,
-    ObservationPage,
-    SourceUnavailableError,
-)
+from core.application.geodata.ports import BirdObservationSource, ObservationPage
 from core.domain.geodata.entities import BirdObservation
 from core.domain.geodata.value_objects import GeoPoint
 from core.settings import config
 
-logger = logging.getLogger(__name__)
+from .http import ThrottledJsonClient
 
 PER_PAGE = 200  # iNaturalist's maximum
 
@@ -53,10 +44,10 @@ def to_observation(result: dict[str, Any]) -> BirdObservation | None:
 class INaturalistSource(BirdObservationSource):
     def __init__(self, retries: int = 4, backoff_s: float = 5.0):
         self.api_url = config.bird_api.BIRD_API_URL
-        self.delay_s = config.bird_api.BIRD_API_DELAY_S
-        self.retries = retries
-        self.backoff_s = backoff_s
-        self._last_request_at = 0.0
+        # Throttled to iNaturalist's recommended request rate.
+        self.client = ThrottledJsonClient(
+            "iNaturalist", config.bird_api.BIRD_API_DELAY_S, retries, backoff_s
+        )
 
     def newer_than(self, observation_id: int) -> ObservationPage:
         return self._page({"order": "asc", "id_above": observation_id})
@@ -68,27 +59,8 @@ class INaturalistSource(BirdObservationSource):
         return self._page(params)
 
     def _page(self, params: dict[str, Any]) -> ObservationPage:
-        results = self._get({"per_page": PER_PAGE, "order_by": "id", **params}).get("results", [])
+        results = self.client.get(
+            self.api_url, {"per_page": PER_PAGE, "order_by": "id", **params}
+        ).get("results", [])
         observations = [o for o in map(to_observation, results) if o is not None]
         return ObservationPage(observations=observations, has_more=len(results) >= PER_PAGE)
-
-    def _get(self, params: dict[str, Any]) -> dict[str, Any]:
-        for attempt in range(1, self.retries + 1):
-            # Throttle to iNaturalist's recommended request rate.
-            time.sleep(max(0.0, self._last_request_at + self.delay_s - time.monotonic()))
-            self._last_request_at = time.monotonic()
-            try:
-                response = requests.get(
-                    self.api_url,
-                    params=params,
-                    headers={"User-Agent": "birdy/0.1 (bird-vs-datacenters)"},
-                    timeout=30,
-                )
-                response.raise_for_status()
-                return response.json()
-            except (RequestException, ValueError) as e:
-                logger.warning("iNaturalist request failed (attempt %d): %s", attempt, e)
-                if attempt == self.retries:
-                    raise SourceUnavailableError(f"iNaturalist: {e}") from e
-                time.sleep(self.backoff_s * 2 ** (attempt - 1))
-        raise AssertionError("unreachable")
